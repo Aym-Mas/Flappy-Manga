@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Manga V3</title>
+    <title>Flappy Manga V3.1</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;900&display=swap');
 
@@ -39,15 +39,10 @@
 
         h1 { font-family: 'Bangers'; font-size: 3.5rem; color: #f1c40f; text-shadow: 3px 3px #e67e22; margin: 0 0 20px 0; letter-spacing: 2px;}
 
-        /* --- BOUTON POUVOIR (NOUVEAU DESIGN) --- */
+        /* --- BOUTON POUVOIR --- */
         #ability-container {
-            position: absolute;
-            bottom: 40px;
-            right: 30px;
-            z-index: 20;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            position: absolute; bottom: 40px; right: 30px; z-index: 20;
+            display: flex; flex-direction: column; align-items: center;
         }
 
         #ability-btn {
@@ -57,40 +52,28 @@
             border: 4px solid #fff;
             box-shadow: 0 8px 0 #b33939, 0 15px 20px rgba(0,0,0,0.4);
             display: flex; align-items: center; justify-content: center;
-            font-size: 2.5rem;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.1s, box-shadow 0.1s;
+            font-size: 2.5rem; cursor: pointer; position: relative;
+            overflow: hidden; transition: transform 0.1s, box-shadow 0.1s;
         }
         
         #ability-btn:active {
-            transform: translateY(8px);
-            box-shadow: 0 0 0 #b33939, 0 5px 10px rgba(0,0,0,0.4);
+            transform: translateY(8px); box-shadow: 0 0 0 #b33939, 0 5px 10px rgba(0,0,0,0.4);
         }
 
-        /* Masque de cooldown (assombrit le bouton) */
         #cd-mask {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
-            background: rgba(0, 0, 0, 0.7);
-            transition: height 0.1s linear;
-            pointer-events: none;
+            background: rgba(0, 0, 0, 0.7); transition: height 0.1s linear; pointer-events: none;
         }
 
         .ability-label {
-            margin-top: 10px;
-            font-family: 'Bangers';
-            color: white;
-            text-shadow: 1px 1px 0 #000;
-            font-size: 1.2rem;
-            pointer-events: none;
+            margin-top: 10px; font-family: 'Bangers'; color: white;
+            text-shadow: 1px 1px 0 #000; font-size: 1.2rem; pointer-events: none;
         }
 
         /* --- AUTRES UI --- */
         .hud-score {
             position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            font-family: 'Bangers'; font-size: 4rem; color: white; text-shadow: 3px 3px 0 #000;
-            pointer-events: none; z-index: 5;
+            font-family: 'Bangers'; font-size: 4rem; color: white; text-shadow: 3px 3px 0 #000; pointer-events: none; z-index: 5;
         }
 
         .btn {
@@ -105,7 +88,7 @@
         
         .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .shop-item { background: #fff; padding: 10px; border-radius: 8px; text-align: center; }
-        .shop-item img { width: 40px; height: 40px; }
+        .shop-item img { width: 40px; height: 40px; object-fit: contain; }
     </style>
 </head>
 <body>
@@ -149,31 +132,39 @@
 </div>
 
 <script>
-// --- ASSETS ---
+// --- ASSETS (TON IMAGE ZENITSU EST ICI !) ---
 const ASSETS = {
     bg: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png',
     pipe: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png',
+    
+    // Gon (Toujours l'oiseau rouge pour l'instant)
     gon_free: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/redbird-midflap.png',
-    zen_free: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png',
+    
+    // ZENITSU : TON NOUVEAU SPRITE !
+    zen_free: 'https://raw.githubusercontent.com/Aym-Mas/Flappy-Manga/refs/heads/main/zenitsu.png',
+    
+    // Orihime (Toujours l'oiseau bleu)
     ori_free: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/bluebird-midflap.png',
+    
     tan_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/bluebird-midflap.png',
     his_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/redbird-midflap.png',
     bya_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png'
 };
+
 const imgs = {};
 for(let k in ASSETS) { imgs[k] = new Image(); imgs[k].src = ASSETS[k]; }
 
 // --- CONFIG ET DATA ---
 const CONFIG = {
     stats: {
-        destruct: { speed: 4.0, gravity: 0.35, jump: -6.5, icon:'👊', color:'#e74c3c' }, // Gon
-        speed:    { speed: 5.5, gravity: 0.30, jump: -5.5, icon:'⚡', color:'#f1c40f' }, // Zenitsu
-        collect:  { speed: 4.5, gravity: 0.32, jump: -6.0, icon:'🛡️', color:'#3498db' } // Orihime
+        destruct: { speed: 4.0, gravity: 0.35, jump: -6.5, icon:'👊', color:'#e74c3c' }, 
+        speed:    { speed: 5.5, gravity: 0.30, jump: -5.5, icon:'⚡', color:'#f1c40f' }, 
+        collect:  { speed: 4.5, gravity: 0.32, jump: -6.0, icon:'🛡️', color:'#3498db' } 
     },
     abilities: {
-        destruct: { cd: 300, duration: 30 }, // Explosion instantanée
-        speed:    { cd: 200, duration: 120 }, // Dash 2 secondes
-        collect:  { cd: 250, duration: 240 }  // Magnet 4 secondes
+        destruct: { cd: 300, duration: 30 },
+        speed:    { cd: 200, duration: 120 },
+        collect:  { cd: 250, duration: 240 }
     }
 };
 
@@ -191,14 +182,12 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let animId;
 
-// Etat Persistant
 let state = {
     coins: parseInt(localStorage.getItem('fm_c')) || 0,
     inventory: JSON.parse(localStorage.getItem('fm_i')) || ['gon_free', 'zen_free', 'ori_free'],
     selected: localStorage.getItem('fm_s') || 'gon_free'
 };
 
-// Session de jeu
 let session = {
     active: false,
     pipes: [], coins: [], particles: [],
@@ -216,7 +205,6 @@ const game = {
         const char = CHARS.find(c => c.id === state.selected);
         const stats = CONFIG.stats[char.arch];
         
-        // Setup Bouton
         const btn = document.getElementById('ability-btn');
         document.getElementById('ability-icon').innerText = stats.icon;
         btn.style.background = `radial-gradient(circle at 30% 30%, ${stats.color}, #000)`;
@@ -240,15 +228,12 @@ const game = {
     },
 
     update: () => {
-        // 1. Physique Bird
         session.bird.v += session.bird.stats.gravity;
         session.bird.y += session.bird.v;
         session.bird.r = Math.min(Math.PI/4, Math.max(-Math.PI/4, session.bird.v * 0.1));
 
-        // Mort (Sol/Plafond)
         if(session.bird.y < 0 || session.bird.y + 24 > canvas.height) game.die();
 
-        // 2. Spawner
         if(session.frames % 100 === 0) {
             let gap = 160;
             let h = Math.random() * (canvas.height - gap - 100) + 50;
@@ -257,71 +242,55 @@ const game = {
             if(Math.random()>0.5) session.coins.push({ x:canvas.width+26, y:h+gap/2, collected:false });
         }
 
-        // 3. Logique Objets
-        // PIPES
         session.pipes.forEach(p => {
             p.x -= session.bird.stats.speed;
-            
-            // COLLISION (Si pas détruit ET pas en mode Speed Invincible)
             if(!p.destroyed) {
                 let invincible = session.ability.active && session.ability.type === 'speed';
                 if(!invincible) {
                     if(checkRect(50+5, session.bird.y+5, 24, 14, p.x, p.y, p.w, p.h)) game.die();
                 }
             }
-            
-            // Score
             if(p.type==='top' && p.x+p.w < 50 && !p.passed) {
                 p.passed = true; session.score++;
                 document.getElementById('score-val').innerText = session.score;
             }
         });
 
-        // PIECES
         session.coins.forEach(c => {
-            // MAGNET LOGIC (Orihime)
             if(session.ability.active && session.ability.type === 'collect' && !c.collected) {
                 let dx = 50 - c.x; let dy = session.bird.y - c.y;
-                c.x += dx * 0.15; c.y += dy * 0.15; // Attraction forte
+                c.x += dx * 0.15; c.y += dy * 0.15; 
             } else {
                 c.x -= session.bird.stats.speed;
             }
-
-            // Collecte
-            let dist = Math.hypot(50-c.x, session.bird.y-c.y);
-            if(dist < 30 && !c.collected) {
+            if(Math.hypot(50-c.x, session.bird.y-c.y) < 30 && !c.collected) {
                 c.collected = true; state.coins++; ui.update();
             }
         });
 
-        // 4. Gestion Ability
         if(session.ability.active) {
-            session.ability.timer--; // Décompte durée active
+            session.ability.timer--;
             if(session.ability.timer <= 0) {
                 session.ability.active = false;
                 session.ability.ready = false;
-                session.ability.timer = session.ability.maxCd; // Start Cooldown
+                session.ability.timer = session.ability.maxCd;
             }
         } else if(!session.ability.ready) {
-            session.ability.timer--; // Décompte Cooldown
+            session.ability.timer--;
             if(session.ability.timer <= 0) session.ability.ready = true;
         }
         ui.updateCd();
 
-        // Nettoyage
         session.pipes = session.pipes.filter(p => p.x > -60);
         session.coins = session.coins.filter(c => c.x > -60);
-        
         session.frames++;
     },
 
     draw: () => {
         ctx.drawImage(imgs.bg, 0, 0, canvas.width, canvas.height);
 
-        // Pipes
         session.pipes.forEach(p => {
-            if(p.destroyed) return; // Ne pas dessiner si détruit
-            
+            if(p.destroyed) return;
             if(p.type === 'bot') ctx.drawImage(imgs.pipe, p.x, p.y, p.w, p.h);
             else {
                 ctx.save(); ctx.translate(p.x, p.y+p.h); ctx.scale(1,-1);
@@ -329,7 +298,6 @@ const game = {
             }
         });
 
-        // Pièces
         session.coins.forEach(c => {
             if(!c.collected) {
                 ctx.fillStyle='gold'; ctx.beginPath(); ctx.arc(c.x,c.y,12,0,Math.PI*2); ctx.fill();
@@ -337,28 +305,26 @@ const game = {
             }
         });
 
-        // Bird
         ctx.save();
         ctx.translate(50+17, session.bird.y+12);
         
-        // EFFETS VISUELS POUVOIRS
         if(session.ability.active) {
             if(session.ability.type === 'speed') {
-                // Traînée jaune
                 ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
                 ctx.fillRect(-60, -10, 60, 20);
             } else if (session.ability.type === 'collect') {
-                // Cercle bleu
                 ctx.strokeStyle = 'cyan'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.arc(0,0, 40, 0, Math.PI*2); ctx.stroke();
             }
         }
         
         ctx.rotate(session.bird.r);
-        ctx.drawImage(session.bird.img, -17, -12, 34, 24);
+        // DESSIN DU PERSONNAGE ADAPTÉ
+        // On garde 34x24 pour la hitbox physique, mais visuellement on peut ajuster un peu si besoin
+        // Comme ton sprite Zenitsu est un peu plus "carré", on ajuste légèrement le rendu
+        ctx.drawImage(session.bird.img, -17, -12, 34, 26); 
         ctx.restore();
 
-        // Particules (Explosions)
         for(let i=session.particles.length-1; i>=0; i--) {
             let pt = session.particles[i];
             pt.life--; pt.x += pt.vx; pt.y += pt.vy;
@@ -384,13 +350,12 @@ const game = {
         if(!session.active || !session.ability.ready) return;
 
         session.ability.active = true;
-        session.ability.timer = session.ability.duration; // Set duration logic
+        session.ability.timer = session.ability.duration; 
 
-        // LOGIQUE ACTIVATION IMMEDIATE (GON)
         if(session.ability.type === 'destruct') {
             let count = 0;
             session.pipes.forEach(p => {
-                if(!p.destroyed && p.x > 0 && count < 6) { // Détruit 3 paires (6 tuyaux)
+                if(!p.destroyed && p.x > 0 && count < 6) { 
                     p.destroyed = true;
                     createExplosion(p.x + 26, p.y + p.h/2);
                     count++;
@@ -400,7 +365,6 @@ const game = {
     }
 };
 
-// --- UTILITAIRES ---
 const ui = {
     show: (id) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -419,7 +383,7 @@ const ui = {
             mask.style.height = pct + '%';
         } else if (session.ability.active) {
             mask.style.height = '0%'; 
-            mask.style.background = 'rgba(255,255,255,0.3)'; // Flash actif
+            mask.style.background = 'rgba(255,255,255,0.3)';
         } else {
             mask.style.height = '0%';
             mask.style.background = 'rgba(0,0,0,0.7)';
