@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Manga V1</title>
+    <style>
+        /* --- CSS STYLING --- */
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #333;
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI OVERLAYS */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { font-family: 'Bangers', cursive; font-size: 4rem; color: #FFD700; text-shadow: 3px 3px #000; margin: 0; }
+        h2 { font-family: 'Bangers', cursive; font-size: 2rem; color: #FFF; }
+
+        .btn {
+            background: #ff4757;
+            border: 3px solid #fff;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 10px;
+            text-transform: uppercase;
+            box-shadow: 0 5px 0 #b71540;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b71540; }
+        .btn-secondary { background: #1e90ff; box-shadow: 0 5px 0 #0652dd; }
+        
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .stat-box {
+            position: absolute;
+            top: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #score-display { left: 10px; font-size: 1.5rem; }
+        #currency-display { right: 10px; color: #FFD700; }
+        #gem-display { right: 10px; top: 50px; color: #ff7675; }
+
+        /* ABILITY BUTTON */
+        #ability-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 4px solid white;
+            pointer-events: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        #cooldown-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            transform-origin: center;
+            /* Modified by JS for animation */
+        }
+
+        /* SHOP */
+        #shop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 800px;
+            width: 90%;
+        }
+        .shop-item {
+            background: #fff;
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #ccc;
+        }
+        .shop-item.owned { border-color: #2ed573; background: #dff9fb; }
+        .shop-item img { width: 50px; height: 50px; background: #ccc; border-radius: 5px; }
+        .price-tag { display: block; margin-top: 5px; font-size: 0.9rem; font-weight: bold; }
+        .buy-btn { font-size: 0.8rem; padding: 5px 10px; margin-top: 5px; width: 100%; }
+
+        /* TABS */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 5px 15px; background: #555; cursor: pointer; }
+        .tab.active { background: #ff4757; }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud" class="hidden">
+        <div id="score-display">0m</div>
+        <div id="currency-display" class="stat-box">0 ₱</div>
+        <div id="gem-display" class="stat-box" style="top: 50px;">0 ♦</div>
+        
+        <div id="ability-btn">
+            <span style="font-weight:bold; font-size:20px;">POW</span>
+            <div id="cooldown-overlay" style="height: 0%;"></div>
+        </div>
+    </div>
+
+    <div id="menu-screen" class="screen">
+        <h1>FLAPPY MANGA</h1>
+        <div class="stat-box" style="position:relative; margin-bottom:20px; top:0;">
+            <span id="menu-coins">0</span> ₱ | <span id="menu-gems">0</span> ♦
+        </div>
+        <button class="btn" onclick="game.start()">JOUER</button>
+        <button class="btn btn-secondary" onclick="ui.showShop()">BOUTIQUE</button>
+        <button class="btn btn-secondary" onclick="ui.showLeaderboard()">CLASSEMENT</button>
+        <button class="btn btn-secondary" style="background:#6c5ce7" onclick="game.buyGems()">+100 GEMMES (1€)</button>
+    </div>
+
+    <div id="gameover-screen" class="screen hidden">
+        <h1>GAME OVER</h1>
+        <h2 id="go-score">Distance: 0m</h2>
+        <h3 style="color:#FFD700" id="go-coins">+0 ₱</h3>
+        <button class="btn" onclick="game.reset()">REJOUER</button>
+        <button class="btn btn-secondary" onclick="ui.showMenu()">MENU</button>
+    </div>
+
+    <div id="shop-screen" class="screen hidden">
+        <h2>BOUTIQUE</h2>
+        <div id="shop-grid">
+            </div>
+        <button class="btn btn-secondary" style="margin-top:20px" onclick="ui.showMenu()">RETOUR</button>
+    </div>
+
+    <div id="leaderboard-screen" class="screen hidden">
+        <h2>CLASSEMENT HEBDO</h2>
+        <div class="tabs">
+            <div class="tab active" onclick="ui.switchTab('dist')">Distance</div>
+            <div class="tab" onclick="ui.switchTab('coins')">Pièces</div>
+            <div class="tab" onclick="ui.switchTab('obs')">Détruits</div>
+        </div>
+        <div id="lb-content" style="background:#fff; color:#333; padding:20px; width:300px; border-radius:5px;">
+            Chargement...
+        </div>
+        <button class="btn btn-secondary" style="margin-top:20px" onclick="ui.showMenu()">RETOUR</button>
+    </div>
+</div>
+
+<script>
+/**
+ * CONFIGURATION DU JEU (gamebalance.json)
+ */
+const CONFIG = {
+    currency: { coin_rate: 1, gem_cost: 100 },
+    abilities: {
+        destruct: { destroy_count: 3, cd: 45, duration: 0.4 },
+        speed:    { dash_count: 3, cd: 30, duration: 0.5 }, // Dash court mais intense
+        collect:  { radius: 150, duration: 4, cd: 35 } // Rayon augmenté pour jouabilité
+    },
+    stats: {
+        destruct: { speed: 4.5, gravity: 0.65, jump: -9 },
+        speed:    { speed: 6.0, gravity: 0.50, jump: -8 },
+        collect:  { speed: 5.0, gravity: 0.60, jump: -8.5 }
+    },
+    colors: {
+        gon: '#2ecc71', zen: '#f1c40f', ori: '#e67e22',
+        tan: '#3498db', his: '#e84393', bya: '#dfe6e9'
+    }
+};
+
+/**
+ * DATA PERSONNAGES
+ */
+const CHARACTERS = [
+    // Gratuits
+    { id: 'gon_free', name: 'Gon', series: 'HxH', type: 'destruct', price: 0, color: CONFIG.colors.gon },
+    { id: 'zen_free', name: 'Zenitsu', series: 'DS', type: 'speed', price: 0, color: CONFIG.colors.zen },
+    { id: 'ori_free', name: 'Orihime', series: 'Bleach', type: 'collect', price: 0, color: CONFIG.colors.ori },
+    // Payants
+    { id: 'tan_pay', name: 'Tanjiro', series: 'DS', type: 'destruct', price: 3000, color: CONFIG.colors.tan },
+    { id: 'his_pay', name: 'Hisoka', series: 'HxH', type: 'collect', price: 3000, color: CONFIG.colors.his },
+    { id: 'bya_pay', name: 'Byakuya', series: 'Bleach', type: 'speed', price: 3000, color: CONFIG.colors.bya }
+];
+
+/**
+ * MOTEUR DU JEU
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Etat Global
+let state = {
+    screen: 'MENU', // MENU, GAME, GAMEOVER, SHOP, LEADERBOARD
+    coins: parseInt(localStorage.getItem('fm_coins')) || 0,
+    gems: parseInt(localStorage.getItem('fm_gems')) || 0,
+    inventory: JSON.parse(localStorage.getItem('fm_inventory')) || ['gon_free', 'zen_free', 'ori_free'],
+    selectedChar: localStorage.getItem('fm_selected') || 'gon_free',
+    lastTime: 0
+};
+
+// Variables de partie
+let gameSession = {
+    active: false,
+    score: 0,
+    coinsCollected: 0,
+    obsDestroyed: 0,
+    speed: 0,
+    pipes: [],
+    gameCoins: [],
+    particles: [], // Pour les effets visuels
+    abilityReady: true,
+    abilityActive: false,
+    abilityTimer: 0,
+    cooldownTimer: 0,
+    frameCount: 0
+};
+
+// Joueur
+let player = {
+    x: 50,
+    y: 200,
+    width: 30,
+    height: 30,
+    velocity: 0,
+    rotation: 0,
+    arch: null,
+    stats: null
+};
+
+// Redimensionnement
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+/**
+ * GESTION UI & LOGIQUE
+ */
+const ui = {
+    updateCurrency: () => {
+        document.getElementById('menu-coins').innerText = state.coins;
+        document.getElementById('menu-gems').innerText = state.gems;
+        document.getElementById('currency-display').innerText = state.coins + " ₱";
+        document.getElementById('gem-display').innerText = state.gems + " ♦";
+        localStorage.setItem('fm_coins', state.coins);
+        localStorage.setItem('fm_gems', state.gems);
+    },
+    
+    showScreen: (id) => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'game-container') document.getElementById('hud').classList.remove('hidden');
+        else document.getElementById('hud').classList.add('hidden');
+    },
+
+    showMenu: () => {
+        state.screen = 'MENU';
+        ui.updateCurrency();
+        ui.showScreen('menu-screen');
+    },
+
+    showShop: () => {
+        state.screen = 'SHOP';
+        const grid = document.getElementById('shop-grid');
+        grid.innerHTML = '';
+        
+        CHARACTERS.forEach(char => {
+            const owned = state.inventory.includes(char.id);
+            const selected = state.selectedChar === char.id;
+            
+            let btnHtml = '';
+            if (owned) {
+                btnHtml = selected 
+                    ? `<button class="buy-btn" disabled style="background:#2ed573">ÉQUIPÉ</button>` 
+                    : `<button class="buy-btn" onclick="game.equip('${char.id}')">ÉQUIPER</button>`;
+            } else {
+                btnHtml = `<button class="buy-btn btn-secondary" onclick="game.buy('${char.id}', 'coins')">${char.price} ₱</button>
+                           <button class="buy-btn" style="background:#a55eea" onclick="game.buy('${char.id}', 'gems')">100 ♦</button>`;
+            }
+
+            const el = document.createElement('div');
+            el.className = `shop-item ${owned ? 'owned' : ''}`;
+            // Simulation de sprite avec une boite de couleur
+            el.innerHTML = `
+                <div style="width:50px;height:50px;margin:0 auto;background:${char.color};border:2px solid #000;"></div>
+                <div style="font-weight:bold">${char.name}</div>
+                <div style="font-size:0.8em; color:#666;">${char.type.toUpperCase()}</div>
+                ${btnHtml}
+            `;
+            grid.appendChild(el);
+        });
+        ui.showScreen('shop-screen');
+    },
+
+    showLeaderboard: () => {
+        state.screen = 'LEADERBOARD';
+        ui.switchTab('dist');
+        ui.showScreen('leaderboard-screen');
+    },
+
+    switchTab: (type) => {
+        const content = document.getElementById('lb-content');
+        // Fake data pour l'exemple
+        let html = `<ol>`;
+        for(let i=1; i<=5; i++) {
+            let val = type === 'dist' ? (1000 - i*50)+'m' : (type === 'coins' ? (500 - i*20)+'₱' : (100 - i*5));
+            html += `<li>Joueur_${Math.floor(Math.random()*999)} : <b>${val}</b></li>`;
+        }
+        html += `</ol><p style="font-size:0.8em; text-align:center; color:#888">Votre meilleur: ???</p>`;
+        content.innerHTML = html;
+        
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        // Simple visuel active tab (pas implémenté totalement ici pour brièveté)
+    },
+    
+    updateAbility: () => {
+        const cdDiv = document.getElementById('cooldown-overlay');
+        const btn = document.getElementById('ability-btn');
+        
+        if(gameSession.abilityActive) {
+            btn.style.borderColor = '#00ff00'; // Actif
+            cdDiv.style.height = '0%';
+        } else if (!gameSession.abilityReady) {
+            btn.style.borderColor = 'white';
+            // Calcul pourcentage cooldown
+            const charData = CHARACTERS.find(c => c.id === state.selectedChar);
+            const totalCd = CONFIG.abilities[charData.type].cd * 60; // en frames
+            const pct = (gameSession.cooldownTimer / totalCd) * 100;
+            cdDiv.style.height = pct + '%';
+        } else {
+            btn.style.borderColor = '#FFD700'; // Prêt
+            cdDiv.style.height = '0%';
+        }
+    }
+};
+
+/**
+ * GAME LOGIC
+ */
+const game = {
+    start: () => {
+        const charData = CHARACTERS.find(c => c.id === state.selectedChar);
+        player.arch = charData.type;
+        player.stats = CONFIG.stats[charData.type];
+        
+        // Reset physique
+        player.y = canvas.height / 2;
+        player.velocity = 0;
+        player.rotation = 0;
+        
+        // Reset session
+        gameSession = {
+            active: true,
+            score: 0,
+            coinsCollected: 0,
+            obsDestroyed: 0,
+            speed: player.stats.speed, // Vitesse de défilement liée à l'archétype
+            pipes: [],
+            gameCoins: [],
+            particles: [],
+            abilityReady: true,
+            abilityActive: false,
+            abilityTimer: 0,
+            cooldownTimer: 0,
+            frameCount: 0
+        };
+        
+        ui.showScreen('game-container');
+        ui.updateCurrency();
+        loop();
+    },
+
+    reset: () => {
+        game.start();
+    },
+
+    buyGems: () => {
+        state.gems += 100;
+        alert("Achat effectué ! +100 Gemmes");
+        ui.updateCurrency();
+    },
+
+    buy: (id, currency) => {
+        if (currency === 'coins' && state.coins >= 3000) {
+            state.coins -= 3000;
+        } else if (currency === 'gems' && state.gems >= 100) {
+            state.gems -= 100;
+        } else {
+            alert("Fonds insuffisants !");
+            return;
+        }
+        state.inventory.push(id);
+        localStorage.setItem('fm_inventory', JSON.stringify(state.inventory));
+        ui.updateCurrency();
+        ui.showShop();
+    },
+
+    equip: (id) => {
+        state.selectedChar = id;
+        localStorage.setItem('fm_selected', id);
+        ui.showShop();
+    },
+
+    useAbility: () => {
+        if (!gameSession.active || !gameSession.abilityReady) return;
+        
+        const config = CONFIG.abilities[player.arch];
+        gameSession.abilityActive = true;
+        gameSession.abilityReady = false;
+        gameSession.abilityTimer = config.duration * 60; // Durée en frames
+        gameSession.cooldownTimer = config.cd * 60; // Cooldown en frames
+        
+        // Effet immédiat pour Destructeur
+        if(player.arch === 'destruct') {
+            // Détruit les 3 premiers obstacles
+            let count = 0;
+            gameSession.pipes.forEach(p => {
+                if(count < config.destroy_count && !p.passed && p.x > player.x) {
+                    p.destroyed = true; // Marqueur visuel
+                    gameSession.obsDestroyed++;
+                    createExplosion(p.x + 30, p.y); // Visuel
+                    count++;
+                }
+            });
+        }
+    },
+
+    gameOver: () => {
+        gameSession.active = false;
+        state.coins += gameSession.coinsCollected;
+        ui.updateCurrency();
+        
+        document.getElementById('go-score').innerText = `Distance: ${Math.floor(gameSession.score)}m`;
+        document.getElementById('go-coins').innerText = `+${gameSession.coinsCollected} ₱`;
+        
+        ui.showScreen('gameover-screen');
+    }
+};
+
+// Input Handler
+document.addEventListener('keydown', (e) => {
+    if(e.code === 'Space') jump();
+});
+canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    jump();
+});
+
+document.getElementById('ability-btn').addEventListener('pointerdown', (e) => {
+    e.stopPropagation(); // Empêcher le saut
+    game.useAbility();
+});
+
+function jump() {
+    if (state.screen !== 'game-container' || !gameSession.active) return;
+    player.velocity = player.stats.jump;
+}
+
+/**
+ * BOUCLE PRINCIPALE
+ */
+function loop() {
+    if (!gameSession.active) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 1. Mise à jour Physique
+    updatePhysics();
+    
+    // 2. Génération Obstacles & Pièces
+    spawner();
+    
+    // 3. Rendu
+    drawBackground();
+    drawPipes();
+    drawCoins();
+    drawPlayer();
+    drawParticles();
+    
+    // UI update
+    document.getElementById('score-display').innerText = Math.floor(gameSession.score) + "m";
+    ui.updateAbility();
+
+    gameSession.frameCount++;
+    requestAnimationFrame(loop);
+}
+
+function updatePhysics() {
+    // Gravité
+    player.velocity += player.stats.gravity;
+    player.y += player.velocity;
+    
+    // Rotation simple
+    player.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (player.velocity * 0.1)));
+
+    // Sol / Plafond
+    if (player.y + player.height >= canvas.height || player.y < 0) {
+        game.gameOver();
+    }
+
+    // Score (Distance)
+    gameSession.score += (gameSession.speed / 60); // Conversion pixels -> mètres approx
+
+    // Gestion Ability Timers
+    if (gameSession.abilityActive) {
+        gameSession.abilityTimer--;
+        
+        // Effets continus
+        if (player.arch === 'collect') {
+            // Magnet
+            gameSession.gameCoins.forEach(c => {
+                const dx = player.x - c.x;
+                const dy = player.y - c.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < CONFIG.abilities.collect.radius) {
+                    c.x += dx * 0.1;
+                    c.y += dy * 0.1;
+                }
+            });
+        }
+        
+        if (gameSession.abilityTimer <= 0) {
+            gameSession.abilityActive = false;
+        }
+    }
+
+    if (!gameSession.abilityReady) {
+        gameSession.cooldownTimer--;
+        if (gameSession.cooldownTimer <= 0) {
+            gameSession.abilityReady = true;
+        }
+    }
+}
+
+function spawner() {
+    // Obstacles
+    if (gameSession.frameCount % 100 === 0) { // Intervalle simple
+        const gap = 150;
+        const minHeight = 50;
+        const pipeTopHeight = Math.floor(Math.random() * (canvas.height - gap - minHeight * 2)) + minHeight;
+        
+        gameSession.pipes.push({
+            x: canvas.width,
+            y: 0,
+            w: 60,
+            h: pipeTopHeight,
+            type: 'top',
+            passed: false,
+            destroyed: false
+        });
+        
+        gameSession.pipes.push({
+            x: canvas.width,
+            y: pipeTopHeight + gap,
+            w: 60,
+    
