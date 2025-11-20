@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Manga V3.1</title>
+    <title>Flappy Manga V3.2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Roboto:wght@400;900&display=swap');
 
@@ -132,20 +132,16 @@
 </div>
 
 <script>
-// --- ASSETS (TON IMAGE ZENITSU EST ICI !) ---
+// --- ASSETS ---
 const ASSETS = {
     bg: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png',
     pipe: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png',
-    
-    // Gon (Toujours l'oiseau rouge pour l'instant)
     gon_free: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/redbird-midflap.png',
     
-    // ZENITSU : TON NOUVEAU SPRITE !
+    // ZENITSU (Ton lien)
     zen_free: 'https://raw.githubusercontent.com/Aym-Mas/Flappy-Manga/refs/heads/main/zenitsu.png',
     
-    // Orihime (Toujours l'oiseau bleu)
     ori_free: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/bluebird-midflap.png',
-    
     tan_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/bluebird-midflap.png',
     his_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/redbird-midflap.png',
     bya_pay: 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png'
@@ -247,6 +243,7 @@ const game = {
             if(!p.destroyed) {
                 let invincible = session.ability.active && session.ability.type === 'speed';
                 if(!invincible) {
+                    // HITBOX FIXE 24x14 (Invisible mais c'est elle qui tue)
                     if(checkRect(50+5, session.bird.y+5, 24, 14, p.x, p.y, p.w, p.h)) game.die();
                 }
             }
@@ -306,6 +303,7 @@ const game = {
         });
 
         ctx.save();
+        // On se place au centre du personnage
         ctx.translate(50+17, session.bird.y+12);
         
         if(session.ability.active) {
@@ -319,10 +317,13 @@ const game = {
         }
         
         ctx.rotate(session.bird.r);
-        // DESSIN DU PERSONNAGE ADAPTÉ
-        // On garde 34x24 pour la hitbox physique, mais visuellement on peut ajuster un peu si besoin
-        // Comme ton sprite Zenitsu est un peu plus "carré", on ajuste légèrement le rendu
-        ctx.drawImage(session.bird.img, -17, -12, 34, 26); 
+        
+        // --- MODIFICATION MAJEURE ICI ---
+        // Au lieu de 34x26, on dessine en 60x60 pour que le sprite soit gros
+        // Les coordonnées -30, -30 servent à centrer l'image
+        let size = 60; 
+        ctx.drawImage(session.bird.img, -size/2, -size/2, size, size); 
+        
         ctx.restore();
 
         for(let i=session.particles.length-1; i>=0; i--) {
@@ -396,7 +397,7 @@ const ui = {
             let sel = state.selected === c.id;
             html += `
             <div class="shop-item" style="border:3px solid ${sel ? 'green' : '#ddd'}">
-                <img src="${ASSETS[c.id]}"><br>
+                <img src="${ASSETS[c.id]}" style="height:40px; width:auto;"><br>
                 <b>${c.name}</b><br>
                 ${owned 
                     ? `<button onclick="state.selected='${c.id}';localStorage.setItem('fm_s','${c.id}');ui.openShop()">CHOISIR</button>` 
